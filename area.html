@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <link href='https://fonts.googleapis.com/css?family=Lato:300,900' rel='stylesheet' type='text/css'>
+
+    <style>
+    body{
+        background-color: white;
+     }
+     svg {
+        background-color: white;
+        font-family: 'futura';
+     }
+     .axis text {
+       fill: "#000";
+     }
+     .axis line, .axis path {
+      stroke: "#ccc";
+     }
+     .axisLabel{
+      fill: "#000";
+      font-size: 11px;
+      font-weight: normal;
+    }
+    .path {
+       stroke: "#1E8F93";
+       fill: "#1E8F93";
+       fill-opacity: 0.2;
+     }
+    .annotation text {
+      font-size: 11px;
+    }
+    .annotation-note-title {
+      font-weight: bold;
+    }
+    .title {
+      font-size: 32px;
+      font-weight: bold;
+      /*font-stretch: extra-condensed;*/
+      text-anchor: left;
+    }
+    .subtitle {
+      font-size: 12px;
+      font-weight: normal;
+      text-anchor: left;
+    }
+    div.tooltip{
+      position: absolute;
+      background-color: whitesmoke;
+      padding: 20px;
+      /*border: solid 0.5px #bbb;*/
+      opacity: 0;
+    }
+
+
+    </style>
+</head>
+
+<body>
+
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
+  <!--<script src="https://d3js.org/d3-dsv.v1.min.js"></script>--> 
+
+
+  <script type="text/javascript">
+
+  
+
+   d3.csv("https://raw.githubusercontent.com/EvelinaJ/einaudi-streaming/master/weekly_hplayed.csv", d3.autoType)
+      .then(function(data) {
+
+
+       // DIMENSIONS
+       height = 400, width = 800; //window.innerWidth * 0.9;
+       margin = {top: 40, right: 40, bottom: 30, left: 60};
+
+       // SVG ELEMENT
+       svg = d3.select('body')
+          .append('svg')
+          .attr('width', width)
+          .attr('height', height)  
+
+       // SCALES
+       startDate = data[0].ymw;
+       endDate = data[data.length - 1].ymw;
+       var formatTime = d3.timeParse("%d-%b-%y");
+
+       xScale = d3.scaleTime([startDate, endDate], [margin.left, width - margin.right]);
+
+       yMax = d3.max(data.flat().map(d => d.hplayed));
+
+       yScale = d3.scaleLinear([0, yMax],[height - margin.bottom, margin.top]);
+
+       // AXES
+
+       //console.log(yScale(0), yScale(5), yScale(10))
+
+       yAxis = d3.axisRight(yScale).ticks(0);
+       xAxis = d3.axisBottom(xScale).ticks(0);
+
+       // CURVE AND AREA
+       curve = d3.curveMonotoneX;
+
+       area = d3.area()
+          .curve(curve)
+          .x(d => xScale(d.ymw))
+          .y0(yScale(0))
+          .y1(d => yScale(d.hplayed))
+
+       // tooltip var prep
+
+       div = d3.select('body')
+            .append('div')
+            .attr('class', 'tooltip')
+            .style('opacity', 0)
+
+       // PATH
+       path = svg.append('path')
+            .datum(data)
+            .attr('d', area)
+            //.attr('class', 'path')
+            .attr('fill', '#1E8F93')
+            .attr('fill-opacity', 0.25)
+            .attr('stroke', '#1E8F93')
+            .attr('stroke-width', 1.2)
+            // .on('mouseover', function(d){
+            //     div.transition()
+            //         .duration(200)
+            //         .style("opacity", .9)
+            //     //div .html(formatTime(d.ymw)+'<br/>'+d.hplayed)
+            //       div .html('h '+d.hplayed)
+            //         //.style('left', (d3.event.pageX) + "px")
+            //         //.style("top", (d3.event.pageY - 28) + "px")
+            //     })
+            //     .on("mouseout", function(d) {   
+            //         div.transition()    
+            //           .duration(500)    
+            //           .style("opacity", 0)})
+                // info = 'Date: ' + d.ymw 
+                // info += 'H played ' + d.hplayed + '<br/>'
+                //   .html(info)
+                //   .style('left', d3.event.pageX - 20) 
+                //   .style('top', d3.event.pageY + 10)
+                //   .style('opacity', 0.7);
+            //})
+            // .on('mouseout', function(){
+            //     d3.select('#tooltip')
+            //       .style('left', -1000)
+            //       .style('opacity', 0)
+            // });
+
+       // CALLING AXES
+       xAxisG = svg.append('g')
+          .attr('transform', `translate(0,${ height - margin.bottom+3})`)
+          //.attr('class', 'axisLabel')
+          .attr('id', 'yAxis')
+          .attr('class', 'axis')
+          .call(xAxis)
+          //.selectAll('.domain').remove();
+
+       yAxisG = svg.append('g')
+          .attr('transform', `translate(${width-margin.right+3},0)`)
+          .attr('id', 'yAxis')
+          .attr('class', 'axis')
+          .call(yAxis) 
+          //.selectAll('.domain').remove();
+
+      // TITLE
+      title = svg.append('text')
+          .attr('x', margin.left)
+          .attr('y', margin.top+30)
+          .attr('class', 'title')
+          .text('57 Hours');
+
+      // AXES LABELS
+
+      xAxisLabelStart = svg.append('text')
+        .attr('x', margin.left+5)
+        .attr('y', height-13)
+        .text("Sep 2019")
+        .attr('class', 'axisLabel')
+
+      xAxisLabelEnd = svg.append('text')
+        .attr('x', width-margin.right-margin.left+9)
+        .attr('y', height-13)
+        .text("Sep 2020")
+        .attr('class', 'axisLabel')
+
+      yAxisLabelStart = svg.append('text')
+        .attr('x', width-margin.right+6.5)
+        .attr('y', yScale(5)+4)
+        .text("5h")
+        .attr('class', 'axisLabel')
+
+      yAxisLabelStart = svg.append('text')
+        .attr('x', width-margin.right+6.5)
+        .attr('y', yScale(10)+6)
+        .text("10h")
+        .attr('class', 'axisLabel')
+
+      rect = svg.append('rect')
+          .attr('x', margin.left+12)
+          .attr('width', 92)
+          .attr('y', margin.bottom+64)
+          .attr('height', 15)
+          .attr('fill', '#1E8F93')
+          .attr('fill-opacity', 0.2)
+
+
+      // SUBTITLES
+
+      subtitleOne = svg.append('text')
+          .attr('x', margin.left)
+          .attr('y', margin.top+50)
+          .attr('class', 'subtitle')
+          .text("That's how long I spent listening");
+
+      subtitleTwo = svg.append('text')
+          .attr('x', margin.left)
+          .attr('y', margin.top+65)
+          .attr('class', 'subtitle')
+          .text('to Ludovico Einaudi last year.');
+
+      subtitleThree = svg.append('text')
+          .attr('x', margin.left)
+          .attr('y', margin.top+80)
+          .attr('class', 'subtitle')          
+          .text('This chart shows the number');
+
+      subtitleThree = svg.append('text')
+          .attr('x', margin.left)
+          .attr('y', margin.top+95)
+          .attr('class', 'subtitle')
+          .text('of listening hours per week.');
+
+      // ANNOTATIONS
+      const annotations = [
+          {
+            note: { label: "album released", 
+            bgPadding: 10,
+            title: "Undiscovered",
+            wrap: 300
+          },
+            x: width-margin.right-12.1,
+            y: yScale(5),
+            dy: 0,
+            dx: -42,
+            //subject: { radius: 10, radiusPadding: 10 },
+            connector: { end: "dot" },
+            //color: "#1E8F93"
+            color: "#000"
+
+          },
+        ]//.map(function(d){ d.color = "#000"; return d});
+
+      const makeAnnotations = d3.annotation()
+        .annotations(annotations)
+
+      svg.append("g")
+        .call(makeAnnotations)
+
+      });
+
+
+
+  </script>
+</body>
